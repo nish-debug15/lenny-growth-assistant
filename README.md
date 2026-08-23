@@ -43,7 +43,8 @@ A grounded, RAG-powered conversational assistant over Lenny's Podcast transcript
 ## Prerequisites
 
 - Docker + Docker Compose
-- An Anthropic API key ([console.anthropic.com](https://console.anthropic.com))
+- AWS account with Bedrock model access enabled for Claude (request this first — approval can take a while, do it before anything else)
+- AWS credentials (access key + secret, or configured profile) with `bedrock:InvokeModel` permission
 - A Groq API key, free ([console.groq.com](https://console.groq.com))
 - Node.js 20+ (frontend dev only, not required if using Docker Compose)
 - Python 3.11+ (backend dev only, not required if using Docker Compose)
@@ -56,7 +57,7 @@ A grounded, RAG-powered conversational assistant over Lenny's Podcast transcript
 git clone <this-repo>
 cd lenny-growth-assistant
 cp .env.example .env
-# fill in ANTHROPIC_API_KEY and GROQ_API_KEY in .env
+# fill in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and GROQ_API_KEY in .env
 docker compose up --build
 ```
 
@@ -82,10 +83,13 @@ See `.env.example` for the full list with inline documentation. Required:
 
 | Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Cloud provider #1 |
+| `CLAUDE_CODE_USE_BEDROCK` | Yes | Set to `1` — routes Claude Agent SDK through Amazon Bedrock instead of a direct Anthropic API key |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials with `bedrock:InvokeModel` permission |
+| `AWS_REGION` | Yes | Region where Claude model access is enabled in Bedrock |
+| `ANTHROPIC_MODEL` | Yes | Bedrock model ID (e.g. `us.anthropic.claude-sonnet-...`), not a plain model name |
 | `GROQ_API_KEY` | Yes | Cloud provider #2 (local-LLM slot substitute) |
 | `DATABASE_URL` | Yes | Postgres connection string (Supabase or local) |
-| `DEFAULT_PROVIDER` | No (default: `anthropic`) | `anthropic` or `groq` |
+| `DEFAULT_PROVIDER` | No (default: `anthropic`) | `anthropic` (via Bedrock) or `groq` |
 
 ---
 
@@ -107,6 +111,8 @@ Covers: chat endpoint contracts, retrieval relevance filtering/thresholding, ses
 | Chat returns "provider unavailable" | Missing/invalid API key, or provider timeout | Check `.env`, check provider status; system should auto-fallback to the other provider — check logs for which path was taken |
 | Every answer says "not grounded" | Ingestion hasn't run yet, or corpus path is wrong | Re-run the ingestion command above |
 | Artifact pane shows nothing | Generated content failed sanitization | Check backend logs for the sanitizer rejection reason |
+| Chat request hangs indefinitely on Claude/Bedrock | Known Agent SDK + Bedrock issue (init message received, no response follows) | Add a hard timeout + fallback-to-Groq on the Bedrock call path; don't let one hang block the request |
+| `AccessDeniedException` from Bedrock | Model access not yet approved/enabled in the AWS console for your account/region | Request model access in Bedrock console, wait for approval, confirm `AWS_REGION` matches the approved region |
 
 ---
 
