@@ -7,7 +7,10 @@ pgvector==0.3.6
 pydantic==2.10.4
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
-httpx==0.28.1
 structlog==24.4.0
 pytest==8.3.4
 pytest-asyncio==0.25.0
+httpx==0.28.1
+sentence-transformers==3.3.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu

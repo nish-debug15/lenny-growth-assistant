@@ -10,12 +10,20 @@ from app.config import settings
 # Use NullPool during tests to avoid cross-loop connection issues with pytest-asyncio
 is_testing = "pytest" in sys.modules
 
+engine_kwargs = {
+    "echo": False,
+    "pool_pre_ping": True,
+}
+
+if is_testing:
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_size"] = 5
+    engine_kwargs["max_overflow"] = 10
+
 engine = create_async_engine(
     settings.database_url,
-    echo=False,
-    poolclass=NullPool if is_testing else QueuePool,
-    pool_pre_ping=True,
-    **( {} if is_testing else {"pool_size": 5, "max_overflow": 10} )
+    **engine_kwargs
 )
 
 async_session_factory = async_sessionmaker(
