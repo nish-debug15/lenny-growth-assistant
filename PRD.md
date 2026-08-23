@@ -32,6 +32,7 @@ Recorded because the brief leaves these open:
 
 1. Single-user, local/demo deployment — no multi-tenant auth. A `user_id` field exists in the schema for future multi-tenancy but isn't enforced with real auth in this build.
 2. **"Local LLM — mandatory for the demo" is satisfied via Groq's free-tier API instead of Ollama.** This is a deliberate scope trade-off made under a compressed timeline (see Risks §7) — not a literal Ollama integration. The provider abstraction is written so Ollama is a drop-in swap (OpenAI-compatible interface) if required later.
+3. **Anthropic Claude is accessed via Amazon Bedrock** (`CLAUDE_CODE_USE_BEDROCK=1` + AWS credentials) rather than a direct Anthropic API key — billed through AWS rather than an Anthropic account, at the same per-token cost. Still satisfies "at least one cloud provider" — the routing path, not the model, changed.
 3. Transcript ingestion runs once at setup from a local clone of the linked repo, not a live scheduled re-crawl. "Refresh" = manual re-run of the ingestion script.
 4. "Grounded" means retrieval-augmented (RAG) over chunked transcripts, not full long-context stuffing — the corpus is too large to fit in-context reliably.
 5. Embeddings are generated locally via `sentence-transformers` — no embedding API cost or dependency.
@@ -109,6 +110,8 @@ Recorded because the brief leaves these open:
 |---|---|
 | **Hallucination** on out-of-corpus questions | Relevance-threshold gate on retrieval; explicit "not grounded" response path; system prompt constrains the agent to cite-or-decline |
 | **Ollama requirement not literally met** | Documented substitution with Groq (free, $0, equivalent "fast alternative provider" role); flagged here rather than concealed |
+| **Claude Agent SDK + Bedrock has a known hang failure mode** (init message received, no response follows — open upstream issue) | Hard timeout on the Bedrock call path with automatic fallback to Groq; tested explicitly in Block 4, not assumed to work |
+| **Bedrock model access approval delay** | AWS requires explicit model-access enablement per account/region before first call works — requested at project start, not on the day of the demo |
 | **Latency** on free-tier providers under load | Groq is unusually fast even on its free tier; Claude is the quality fallback, not the latency-critical path |
 | **Cost** | Every component chosen for $0 operation: Supabase free tier, local embeddings, Groq free tier, minimal demo-scale Claude usage |
 | **Local-model quality** (Groq's small open models vs. Claude) | Retrieval quality matters more than generation model size for grounded QA; both providers held to the same citation requirement |
