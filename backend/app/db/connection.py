@@ -1,16 +1,21 @@
 """Async SQLAlchemy engine and session factory."""
 
+import sys
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
+from sqlalchemy.pool import NullPool, QueuePool
 
 from app.config import settings
+
+# Use NullPool during tests to avoid cross-loop connection issues with pytest-asyncio
+is_testing = "pytest" in sys.modules
 
 engine = create_async_engine(
     settings.database_url,
     echo=False,
+    poolclass=NullPool if is_testing else QueuePool,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
+    **( {} if is_testing else {"pool_size": 5, "max_overflow": 10} )
 )
 
 async_session_factory = async_sessionmaker(
