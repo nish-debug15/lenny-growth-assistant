@@ -200,7 +200,11 @@ async def chat_with_agent(db: AsyncSession, session_id: str, user_message: str) 
         logger.error(f"Both LLM providers failed: {e}", exc_info=True)
         response_text = "I'm sorry, I encountered an error while communicating with the AI models. Please try again later."
         
-    # 4. Save AI response
+    # 4. Sanitize the response to prevent XSS (especially in artifacts)
+    from app.agent.sanitizer import sanitize_artifact_html
+    response_text = sanitize_artifact_html(response_text)
+    
+    # 5. Save AI response
     await create_message(db, session_id, "assistant", response_text)
     
     return response_text
