@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.connection import check_db_connection
 from app.routes.sessions import router as sessions_router
+from app.routes.chat import router as chat_router
 
 app = FastAPI(
     title="Lenny Growth Assistant",
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(sessions_router)
+app.include_router(chat_router)
 
 @app.get("/health")
 async def health_check():
