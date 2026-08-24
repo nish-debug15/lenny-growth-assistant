@@ -1,132 +1,139 @@
 # The Lenny Growth Assistant
 
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
+![React](https://img.shields.io/badge/React-18.x-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-blue.svg)
+
 A grounded, RAG-powered conversational assistant over Lenny's Podcast transcripts — with source citations, a Ship 30/30 essay-writing skill, and an in-app Artifact Viewer for generated Markdown/HTML.
 
 > Built as a Forward Deployed Engineer Intern take-home assignment. See `PRD.md` for product rationale, `architecture.md` for system design, and `design.md` for UI/UX decisions.
 
 ---
 
-## Architecture Overview
+## ✨ Features
 
-```
+- 🎙️ **Grounded RAG**: Answers questions using embeddings of Lenny's Podcast transcripts for highly contextual responses.
+- 📝 **Ship 30/30 Essay Skill**: Specialized tool to help draft and refine essays based on podcast insights.
+- 🎨 **Artifact Viewer**: In-app rendering of generated Markdown and sandboxed HTML directly alongside the chat.
+- ⚡ **Fast & Responsive UI**: Built with React, Vite, and a sleek dark glass theme.
+- 🔍 **Vector Search**: Leverages PostgreSQL + pgvector and sentence-transformers for fast cosine similarity search.
+- 🛡️ **Secure Rendering**: Uses bleach for backend output sanitization and iframe sandboxing on the frontend.
+
+---
+
+## 🏗️ Architecture Overview
+
+```text
 ┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
 │  React UI   │◄────►│  FastAPI     │◄────►│  Postgres        │
 │  (chat +    │      │  backend     │      │  + pgvector      │
 │  artifact   │      │  (agent      │      │  (sessions,      │
-│  viewer)    │      │  routing)    │      │  messages,       │
-└─────────────┘      └──────┬───────┘      │  transcript      │
-                             │               │  embeddings)     │
-                    ┌────────┴────────┐     └─────────────────┘
-                    │  Claude Agent   │
-                    │  SDK            │
-                    │  (tools:        │
-                    │  retrieve,      │
-                    │  ship30_essay,  │
-                    │  gen_artifact)  │
-                    └────────┬────────┘
-                             │
-                ┌────────────┴────────────┐
-                │                         │
-        ┌───────▼──────┐         ┌────────▼───────┐
-        │  Anthropic    │         │  Groq          │
-        │  Claude API   │         │  (free-tier,   │
-        │  (primary     │         │  local-LLM     │
-        │  cloud)       │         │  slot swap —   │
-        └───────────────┘         │  see PRD §3.2) │
-                                   └────────────────┘
+│  viewer)    │      │  routing)    │      │  embeddings)     │
+└─────────────┘      └──────┬───────┘      └─────────────────┘
+                            │
+                   ┌────────┴────────┐
+                   │  Agent Loop     │
+                   │  (tools:        │
+                   │  retrieve,      │
+                   │  ship30_essay,  │
+                   │  gen_artifact)  │
+                   └────────┬────────┘
+                            │
+               ┌────────────┴────────────┐
+               │  Groq (Primary LLM)     │
+               └─────────────────────────┘
 ```
 
-**Note on the local-LLM requirement:** the assignment calls for Ollama as the mandatory local model for the demo. This build substitutes **Groq's free API** for that slot — documented as a deliberate, explicit trade-off in `PRD.md` §3 and §7, not a silent omission. The provider interface is written so Ollama can be swapped back in without touching application code (see `architecture.md` §"Model Configuration Layer").
+**Note:** The system uses Groq's free API to simulate lightning-fast inference, serving as an effective substitute for local LLMs (like Ollama). For an in-depth dive, check out `architecture.md`.
 
 ---
 
-## Prerequisites
+## 🚀 Quick Start
+
+### Prerequisites
 
 - Docker + Docker Compose
-- AWS account with Bedrock model access enabled for Claude (request this first — approval can take a while, do it before anything else)
-- AWS credentials (access key + secret, or configured profile) with `bedrock:InvokeModel` permission
-- A Groq API key, free ([console.groq.com](https://console.groq.com))
-- Node.js 20+ (frontend dev only, not required if using Docker Compose)
-- Python 3.11+ (backend dev only, not required if using Docker Compose)
+- A Groq API key ([console.groq.com](https://console.groq.com))
+- Node.js 20+ & Python 3.11+ (only if running outside Docker)
+
+### Setup
+
+1. **Clone the repo:**
+   ```bash
+   git clone <this-repo>
+   cd lenny-growth-assistant
+   ```
+
+2. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and insert your GROQ_API_KEY and other details
+   ```
+
+3. **Start the application:**
+   ```bash
+   docker compose up --build
+   ```
+   - **Frontend:** http://localhost:5173
+   - **Backend API:** http://localhost:8000
+   - **API health check:** http://localhost:8000/health
+
+4. **First-run Ingestion (Crucial):**
+   The knowledge base must be populated before the RAG features will work.
+   ```bash
+   docker compose exec backend python -m app.ingestion.run --source ./data/transcripts
+   ```
+   *This command parses the podcast transcripts, generates local embeddings, and writes them to pgvector.*
 
 ---
 
-## Setup
+## 🛠️ Tech Stack
 
-```bash
-git clone <this-repo>
-cd lenny-growth-assistant
-cp .env.example .env
-# fill in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and GROQ_API_KEY in .env
-docker compose up --build
-```
-
-Frontend: http://localhost:5173
-Backend API: http://localhost:8000
-API health check: http://localhost:8000/health
-
-### First-run ingestion
-
-The transcript knowledge base must be built once before the assistant has anything to ground answers in:
-
-```bash
-docker compose exec backend python -m app.ingestion.run --source ./data/transcripts
-```
-
-This clones/reads the [Lenny's Podcast transcript repository](https://github.com/ChatPRD/lennys-podcast-transcripts), chunks transcripts, generates local embeddings, and writes them into `pgvector`. Re-run this command any time the source transcripts change — there is no scheduled auto-refresh (documented assumption, see `PRD.md` §3.3).
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS (Dark Glass Theme), react-markdown
+- **Backend:** Python, FastAPI, Groq LLM API, Bleach (Sanitization)
+- **Data & AI:** PostgreSQL, pgvector, sentence-transformers (Embeddings)
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
-See `.env.example` for the full list with inline documentation. Required:
+See `.env.example` for full options. Key variables:
 
 | Variable | Required | Description |
 |---|---|---|
-| `CLAUDE_CODE_USE_BEDROCK` | Yes | Set to `1` — routes Claude Agent SDK through Amazon Bedrock instead of a direct Anthropic API key |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials with `bedrock:InvokeModel` permission |
-| `AWS_REGION` | Yes | Region where Claude model access is enabled in Bedrock |
-| `ANTHROPIC_MODEL` | Yes | Bedrock model ID (e.g. `us.anthropic.claude-sonnet-...`), not a plain model name |
-| `GROQ_API_KEY` | Yes | Cloud provider #2 (local-LLM slot substitute) |
-| `DATABASE_URL` | Yes | Postgres connection string (Supabase or local) |
-| `DEFAULT_PROVIDER` | No (default: `anthropic`) | `anthropic` (via Bedrock) or `groq` |
+| `GROQ_API_KEY` | Yes | API key for LLM inference |
+| `DATABASE_URL` | Yes | Postgres connection string |
+| `DEFAULT_PROVIDER` | No | Target LLM provider (default: `groq`) |
+| `CORS_ORIGINS` | No | Frontend URL for CORS (default: `http://localhost:5173`) |
 
 ---
 
-## Running Tests
+## 🧪 Testing
+
+To run the backend test suite (covers chat endpoints, RAG retrieval thresholds, and session persistence):
 
 ```bash
 docker compose exec backend pytest
 ```
 
-Covers: chat endpoint contracts, retrieval relevance filtering/thresholding, session persistence round-trips. See `TESTING.md` for the manual UI test plan.
+See `TESTING.md` for a comprehensive manual UI test plan.
 
 ---
 
-## Troubleshooting
+## 📂 Project Structure
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `/health` returns 500 | DB not reachable | Check `DATABASE_URL`, confirm Postgres container is up |
-| Chat returns "provider unavailable" | Missing/invalid API key, or provider timeout | Check `.env`, check provider status; system should auto-fallback to the other provider — check logs for which path was taken |
-| Every answer says "not grounded" | Ingestion hasn't run yet, or corpus path is wrong | Re-run the ingestion command above |
-| Artifact pane shows nothing | Generated content failed sanitization | Check backend logs for the sanitizer rejection reason |
-| Chat request hangs indefinitely on Claude/Bedrock | Known Agent SDK + Bedrock issue (init message received, no response follows) | Add a hard timeout + fallback-to-Groq on the Bedrock call path; don't let one hang block the request |
-| `AccessDeniedException` from Bedrock | Model access not yet approved/enabled in the AWS console for your account/region | Request model access in Bedrock console, wait for approval, confirm `AWS_REGION` matches the approved region |
-
----
-
-## Repo Structure
-
-```
-/backend        FastAPI app, agent tools, ingestion, tests
-/frontend       React app (chat + artifact viewer)
-/data           Local transcript clone (gitignored)
-/agent-logs     Coding-agent transcripts (secrets stripped)
-PRD.md
-architecture.md
-design.md
-TESTING.md
-docker-compose.yml
-.env.example
+```text
+/
+├── backend/          # FastAPI app, agent tools, ingestion scripts, tests
+├── frontend/         # React app with chat and artifact viewer
+├── data/             # Local transcript data
+├── agent-logs/       # Coding-agent transcripts
+├── PRD.md            # Product Requirements
+├── architecture.md   # System Architecture details
+├── design.md         # UI/UX and Component Design
+├── TESTING.md        # Test Plans
+├── docker-compose.yml
+└── README.md
 ```
