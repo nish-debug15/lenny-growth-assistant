@@ -21,6 +21,16 @@ async def create_session(
     return session
 
 
+@router.get("", response_model=list[SessionResponse])
+async def list_sessions(
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """List all chat sessions."""
+    sessions = await sessions_repo.list_sessions(db, limit, offset)
+    return sessions
+
 @router.get("/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: uuid.UUID,

@@ -2,7 +2,7 @@ import json
 import logging
 from typing import List
 
-from anthropic import AsyncAnthropicBedrock, AsyncAnthropic
+from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,17 +21,10 @@ openai_client = AsyncOpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-# For Anthropic Bedrock (if configured)
+# Direct Anthropic client (no Bedrock)
 anthropic_client = None
-if settings.claude_code_use_bedrock == "1":
-    anthropic_client = AsyncAnthropicBedrock(
-        aws_access_key=settings.aws_access_key_id,
-        aws_secret_key=settings.aws_secret_access_key,
-        aws_region=settings.aws_region,
-    )
-else:
-    # Fallback to standard Anthropic if not using bedrock
-    anthropic_client = AsyncAnthropic()
+if settings.anthropic_api_key:
+    anthropic_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 async def execute_tool(db: AsyncSession, tool_name: str, arguments: dict) -> str:
     """Execute a local tool by name."""
@@ -181,20 +174,20 @@ async def chat_with_agent(db: AsyncSession, session_id: str, user_message: str) 
             try:
                 response_text = await generate_response_groq(db, history)
             except Exception as e:
-                logger.warning(f"Groq failed ({e}), falling back to Anthropic...")
-                response_text = await generate_response_anthropic(db, history)
+                logger.warning(f"Groq failed ({e}), trying Anthropic fallback...")
+                if anthropic_client:
+                    response_text = await generate_response_anthropic(db, history)
+                else:
+                    raise
         else:
             try:
-                # We could add an explicit timeout for Bedrock here using asyncio.wait_for
-                # But httpx timeout configuration is usually preferred via client instantiation.
                 import asyncio
-                # Applying Bedrock timeout
                 response_text = await asyncio.wait_for(
                     generate_response_anthropic(db, history),
                     timeout=settings.bedrock_timeout_seconds
                 )
             except (Exception, asyncio.TimeoutError) as e:
-                logger.warning(f"Anthropic/Bedrock failed ({e}), falling back to Groq...")
+                logger.warning(f"Anthropic failed ({e}), falling back to Groq...")
                 response_text = await generate_response_groq(db, history)
     except Exception as e:
         logger.error(f"Both LLM providers failed: {e}", exc_info=True)

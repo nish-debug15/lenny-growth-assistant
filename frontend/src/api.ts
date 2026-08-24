@@ -2,7 +2,7 @@ const API_BASE = 'http://localhost:8000';
 
 export interface Session {
   id: string;
-  title: string;
+  user_metadata: any;
   created_at: string;
 }
 
@@ -18,7 +18,7 @@ export async function createSession(title: string = "New Chat"): Promise<Session
   const res = await fetch(`${API_BASE}/sessions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ user_metadata: { title } }),
   });
   if (!res.ok) throw new Error('Failed to create session');
   return res.json();
