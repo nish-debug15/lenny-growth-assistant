@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.agent.prompts import SYSTEM_PROMPT
-from app.agent.tools import SEARCH_TOOL
+from app.agent.tools import SEARCH_TOOL, SHIP30_TOOL
 from app.db.repositories.messages import get_messages_by_session, create_message
 from app.retrieval.search import search_similar_chunks
+from app.agent.ship30 import generate_ship30_essay
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,11 @@ async def execute_tool(db: AsyncSession, tool_name: str, arguments: dict) -> str
         for c in chunks:
             formatted.append(f"[Episode: {c.source_episode}]\n{c.chunk_text}")
         return "\n\n---\n\n".join(formatted)
+        
+    elif tool_name == "generate_ship30_essay":
+        topic = arguments.get("topic", "")
+        essay = await generate_ship30_essay(db, topic)
+        return essay
     
     return f"Unknown tool: {tool_name}"
 
@@ -57,7 +63,10 @@ async def generate_response_groq(db: AsyncSession, messages: list) -> str:
         oai_messages.append({"role": m.role, "content": m.content})
         
     # Tool definitions for OpenAI format
-    tools = [{"type": "function", "function": SEARCH_TOOL}]
+    tools = [
+        {"type": "function", "function": SEARCH_TOOL},
+        {"type": "function", "function": SHIP30_TOOL}
+    ]
     
     logger.info(f"Calling Groq model: {settings.groq_model}")
     response = await openai_client.chat.completions.create(
@@ -102,11 +111,18 @@ async def generate_response_anthropic(db: AsyncSession, messages: list) -> str:
         anthropic_messages.append({"role": m.role, "content": m.content})
         
     # Tool definitions for Anthropic format
-    tools = [{
-        "name": SEARCH_TOOL["name"],
-        "description": SEARCH_TOOL["description"],
-        "input_schema": SEARCH_TOOL["parameters"]
-    }]
+    tools = [
+        {
+            "name": SEARCH_TOOL["name"],
+            "description": SEARCH_TOOL["description"],
+            "input_schema": SEARCH_TOOL["parameters"]
+        },
+        {
+            "name": SHIP30_TOOL["name"],
+            "description": SHIP30_TOOL["description"],
+            "input_schema": SHIP30_TOOL["parameters"]
+        }
+    ]
     
     logger.info(f"Calling Anthropic model: {settings.anthropic_model}")
     response = await anthropic_client.messages.create(
