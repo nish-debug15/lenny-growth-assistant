@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
+import './ArtifactViewer.css';
 
 interface ArtifactViewerProps {
   content: string;
@@ -7,22 +8,26 @@ interface ArtifactViewerProps {
   title?: string;
 }
 
-const DARK_IFRAME_STYLES = `
+const IFRAME_STYLES = `
   body {
     margin: 0; padding: 20px;
-    background: #070b14; color: #cbd5e1;
+    background: #060a13; color: #c8d1de;
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 14px; line-height: 1.7;
   }
   h1,h2,h3 { color: #f1f5f9; margin-bottom: 10px; }
   p { margin-bottom: 10px; }
+  strong { color: #e2e8f0; }
   table { border-collapse: collapse; width: 100%; }
-  th { background: rgba(99,102,241,0.15); padding: 8px 12px; border: 1px solid #1e293b; color: #a5b4fc; }
-  td { padding: 8px 12px; border: 1px solid #1e293b; }
+  th { background: rgba(99,102,241,0.12); padding: 8px 12px; border: 1px solid rgba(99,102,241,0.15); color: #a5b4fc; font-weight: 600; }
+  td { padding: 8px 12px; border: 1px solid rgba(99,102,241,0.1); }
   a { color: #818cf8; }
   blockquote { border-left: 3px solid rgba(99,102,241,0.5); padding-left: 14px; color: #94a3b8; margin: 12px 0; }
-  code { background: rgba(99,102,241,0.18); padding: 2px 6px; border-radius: 4px; color: #c7d2fe; }
-  pre { background: #0a0f1e; border: 1px solid #1e293b; padding: 14px; border-radius: 10px; overflow-x: auto; }
+  code { background: rgba(99,102,241,0.15); padding: 2px 6px; border-radius: 4px; color: #c7d2fe; }
+  pre { background: #080c18; border: 1px solid rgba(99,102,241,0.15); padding: 14px; border-radius: 10px; overflow-x: auto; }
+  ul, ol { padding-left: 22px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+  li::marker { color: #6366f1; }
 `;
 
 const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ content, type = 'html', title = 'Artifact' }) => {
@@ -34,32 +39,34 @@ const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ content, type = 'html',
       const doc = iframeRef.current.contentDocument;
       if (doc) {
         doc.open();
-        doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${DARK_IFRAME_STYLES}</style></head><body>${content}</body></html>`);
+        doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${IFRAME_STYLES}</style></head><body>${content}</body></html>`);
         doc.close();
       }
     }
   }, [content, isMarkdown]);
 
   return (
-    <div style={{ border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(7,11,20,0.9)' }}>
-      <div style={{ padding: '10px 14px', background: 'rgba(15,23,42,0.9)', borderBottom: '1px solid rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <div style={{ display: 'flex', gap: '5px' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', opacity: 0.7 }} />
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308', opacity: 0.7 }} />
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', opacity: 0.7 }} />
+    <div className="av-container">
+      {/* Browser-style header */}
+      <div className="av-header">
+        <div className="av-dots">
+          <div className="av-dot red" />
+          <div className="av-dot yellow" />
+          <div className="av-dot green" />
         </div>
-        <span style={{ marginLeft: '8px', fontSize: '12px', color: '#475569' }}>{title}</span>
-        <span style={{ fontSize: '10px', color: '#334155', marginLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{type}</span>
+        <span className="av-title">{title}</span>
+        <span className="av-type">{type}</span>
       </div>
 
-      <div style={{ padding: isMarkdown ? '20px' : '0', overflowY: 'auto', maxHeight: '60vh' }}>
+      {/* Content */}
+      <div className={`av-body ${isMarkdown ? 'padded' : ''}`}>
         {isMarkdown ? (
-          <div style={{ color: '#cbd5e1' }}><MarkdownRenderer content={content} /></div>
+          <MarkdownRenderer content={content} />
         ) : (
           <iframe
             ref={iframeRef}
             sandbox="allow-same-origin"
-            style={{ width: '100%', border: 'none', minHeight: '300px', background: 'transparent' }}
+            className="av-iframe"
             title={title}
           />
         )}
