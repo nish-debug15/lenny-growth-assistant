@@ -1,15 +1,17 @@
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from app.agent.provider import chat_with_agent
 from app.db.repositories.sessions import create_session
 
 @pytest.mark.asyncio
 async def test_chat_fallback_groq_to_anthropic(db_session):
     # 1. Create a session
-    session_obj = await create_session(db_session, "fallback-test")
+    session_obj = await create_session(db_session, {"source": "fallback-test"})
     
     # 2. Mock Groq to fail, Anthropic to succeed
+    # Also mock anthropic_client to be truthy so the fallback path is taken
     with patch("app.agent.provider.settings.default_provider", "groq"), \
+         patch("app.agent.provider.anthropic_client", MagicMock()), \
          patch("app.agent.provider.generate_response_groq", new_callable=AsyncMock) as mock_groq, \
          patch("app.agent.provider.generate_response_anthropic", new_callable=AsyncMock) as mock_anthropic:
              
@@ -25,7 +27,7 @@ async def test_chat_fallback_groq_to_anthropic(db_session):
 @pytest.mark.asyncio
 async def test_chat_fallback_anthropic_to_groq(db_session):
     # 1. Create a session
-    session_obj = await create_session(db_session, "fallback-test-2")
+    session_obj = await create_session(db_session, {"source": "fallback-test-2"})
     
     # 2. Mock Anthropic to fail, Groq to succeed
     with patch("app.agent.provider.settings.default_provider", "anthropic"), \
