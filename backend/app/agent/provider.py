@@ -87,14 +87,12 @@ async def generate_response_groq(db: AsyncSession, messages: list) -> str:
             "content": tool_result
         })
         
-        # Second call with tool results — force no further tool calls
+        # Second call with tool results — no tools passed to prevent re-invocation
         second_response = await openai_client.chat.completions.create(
             model=settings.groq_model,
             messages=oai_messages,
-            tools=tools,
-            tool_choice="none",
         )
-        return second_response.choices[0].message.content
+        return second_response.choices[0].message.content or ""
         
     return msg.content
 
