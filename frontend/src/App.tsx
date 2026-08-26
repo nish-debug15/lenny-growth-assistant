@@ -5,10 +5,9 @@ import ArtifactViewer from './components/ArtifactViewer';
 import MarkdownRenderer from './components/MarkdownRenderer';
 
 const SUGGESTIONS = [
-  "What's Lenny's top advice on retention?",
-  "Write a Ship 30/30 essay on activation",
-  "How to find product-market fit?",
-  "Best growth loops for consumer apps?",
+  "What is the best way to improve retention?",
+  "How to measure product-market fit?",
+  "Generate a Ship 30/30 essay on activation",
 ];
 
 function App() {
@@ -25,7 +24,7 @@ function App() {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
     }
   }, [inputText]);
 
@@ -44,25 +43,18 @@ function App() {
 
   return (
     <div className="app-layout">
-
       {/* ━━━ SIDEBAR ━━━ */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">🎙</div>
-            <div>
-              <div className="sidebar-logo-text">Lenny AI</div>
-              <div className="sidebar-logo-sub">Growth Assistant</div>
-            </div>
-          </div>
           <button className="new-chat-btn" onClick={startNewSession}>
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>＋</span> New Chat
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New chat
           </button>
         </div>
 
         <div className="session-list">
           {sessions.length === 0 ? (
-            <p className="session-empty">No chats yet — start one!</p>
+            <div className="session-empty">No chats yet</div>
           ) : (
             sessions.map(s => (
               <button
@@ -70,151 +62,137 @@ function App() {
                 className={`session-item ${s.id === currentSessionId ? 'active' : ''}`}
                 onClick={() => setCurrentSessionId(s.id)}
               >
-                <span className="session-icon">💬</span>
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div className="session-title">{s.user_metadata?.title || 'Chat Session'}</div>
-                  <div className="session-date">
-                    {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                </div>
+                <div className="session-title">{s.user_metadata?.title || 'New chat'}</div>
               </button>
             ))
           )}
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="status-dot" />
-          <span>Groq · gpt-oss-120b</span>
         </div>
       </aside>
 
       {/* ━━━ MAIN PANEL ━━━ */}
       <main className="main-panel">
-
-        {/* Topbar */}
         <div className="topbar">
-          <div className={`topbar-dot ${currentSessionId ? 'online' : 'offline'}`} />
-          <span>{currentSession?.user_metadata?.title || (currentSessionId ? 'Chat Session' : 'Select or create a chat')}</span>
+          <span style={{ fontWeight: 600, color: '#000' }}>Lenny AI</span>
+          <span style={{ color: '#d4d4d4' }}>/</span>
+          <span>{currentSession?.user_metadata?.title || 'New chat'}</span>
         </div>
 
-        {error && <div className="error-bar">⚠️ {error}</div>}
+        {error && <div className="error-bar">{error}</div>}
 
-        {/* Messages area */}
         <div className="messages-area">
-          {!currentSessionId ? (
-            /* Welcome screen */
-            <div className="center-screen">
-              <div className="welcome-icon">🎙</div>
-              <div>
-                <h1 className="welcome-title">Lenny Growth Assistant</h1>
-                <p className="welcome-subtitle">
-                  RAG-powered AI over Lenny Rachitsky's podcast transcripts.
-                  Ask anything about growth, retention, PMF, and more.
-                </p>
-              </div>
-              <button className="start-btn" onClick={startNewSession}>
-                Start your first chat →
-              </button>
-            </div>
-          ) : messages.length === 0 && !isLoading ? (
-            /* Empty session */
-            <div className="center-screen">
-              <div style={{ fontSize: '44px' }}>💬</div>
-              <p className="welcome-subtitle">Ask Lenny anything about growth strategy</p>
-              <div className="suggestion-chips">
-                {SUGGESTIONS.map(q => (
-                  <button
-                    key={q}
-                    className="suggestion-chip"
-                    onClick={() => { setInputText(q); textareaRef.current?.focus(); }}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <>
-              {messages.map(msg => {
-                const isUser = msg.role === 'user';
-                const parts = parseMessageArtifacts(msg.content);
-
-                return (
-                  <div key={msg.id} className={`msg-row ${isUser ? 'user' : 'assistant'}`}>
-                    {/* Label */}
-                    <div className="msg-label">
-                      {isUser ? (
-                        <><span className="avatar-dot">Y</span> You</>
-                      ) : (
-                        <>🎙 Lenny AI{msg.provider_used && <span className="provider-tag">· {msg.provider_used}</span>}</>
-                      )}
-                    </div>
-
-                    {/* Bubble */}
-                    <div className={`msg-bubble ${isUser ? 'user' : 'assistant'}`}>
-                      {parts.map((part, idx) => {
-                        if (part.type === 'text') {
-                          return <div key={idx}><MarkdownRenderer content={part.content} /></div>;
-                        }
-                        if (part.type === 'artifact' && part.artifact) {
-                          const a = part.artifact;
-                          return (
-                            <div key={idx} className="artifact-card" onClick={() => setActiveArtifact(a)}>
-                              <span className="artifact-icon">📄</span>
-                              <div>
-                                <div className="artifact-title">{a.title}</div>
-                                <div className="artifact-sub">Click to open · {a.type}</div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Typing indicator */}
-              {isLoading && (
-                <div className="msg-row assistant">
-                  <div className="msg-label">🎙 Lenny AI</div>
-                  <div className="typing-dots">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
+          <div className="messages-container">
+            {!currentSessionId ? (
+              <div className="center-screen">
+                <div className="welcome-icon">🎙</div>
+                <h1 className="welcome-title">Good morning</h1>
+                <div className="suggestion-chips">
+                  {SUGGESTIONS.map(q => (
+                    <button key={q} className="suggestion-chip" onClick={() => { setInputText(q); textareaRef.current?.focus(); }}>
+                      {q}
+                    </button>
+                  ))}
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </>
-          )}
+              </div>
+            ) : messages.length === 0 && !isLoading ? (
+              <div className="center-screen">
+                <div className="welcome-icon" style={{ background: 'transparent', color: '#000', fontSize: '32px' }}>👋</div>
+                <h1 className="welcome-title">How can I help you today?</h1>
+                <div className="suggestion-chips">
+                  {SUGGESTIONS.map(q => (
+                    <button key={q} className="suggestion-chip" onClick={() => { setInputText(q); textareaRef.current?.focus(); }}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map(msg => {
+                  const isUser = msg.role === 'user';
+                  const parts = parseMessageArtifacts(msg.content);
+
+                  return (
+                    <div key={msg.id} className="msg-row">
+                      <div className={`msg-avatar ${isUser ? 'user' : 'assistant'}`}>
+                        {isUser ? 'U' : '🎙'}
+                      </div>
+                      <div className="msg-content-wrapper">
+                        <div className="msg-name">
+                          {isUser ? 'You' : 'Lenny AI'}
+                          {!isUser && msg.provider_used && (
+                            <span className="provider-tag">· {msg.provider_used}</span>
+                          )}
+                        </div>
+                        <div className="msg-text">
+                          {parts.map((part, idx) => {
+                            if (part.type === 'text') {
+                              return <MarkdownRenderer key={idx} content={part.content} />;
+                            }
+                            if (part.type === 'artifact' && part.artifact) {
+                              const a = part.artifact;
+                              return (
+                                <div key={idx} className="artifact-card" onClick={() => setActiveArtifact(a)}>
+                                  <div className="artifact-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                  </div>
+                                  <div>
+                                    <div className="artifact-title">{a.title}</div>
+                                    <div className="artifact-sub">Click to open</div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {isLoading && (
+                  <div className="msg-row">
+                    <div className="msg-avatar assistant">🎙</div>
+                    <div className="msg-content-wrapper">
+                      <div className="msg-name">Lenny AI</div>
+                      <div className="typing-dots">
+                        <div className="typing-dot" />
+                        <div className="typing-dot" />
+                        <div className="typing-dot" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
         </div>
 
-        {/* ━━━ INPUT BAR ━━━ */}
-        <div className="input-bar">
+        {/* Input Bar */}
+        <div className="input-area-container">
           <form className="input-form" onSubmit={handleSend}>
-            <div className="input-wrapper">
-              <textarea
-                ref={textareaRef}
-                className="input-textarea"
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={currentSessionId ? "Ask Lenny… (⏎ send, ⇧⏎ newline)" : "Create a new chat to start"}
-                disabled={isLoading || !currentSessionId}
-                rows={1}
-              />
-            </div>
+            <textarea
+              ref={textareaRef}
+              className="input-textarea"
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message Lenny AI..."
+              disabled={isLoading || !currentSessionId}
+              rows={1}
+            />
             <button
               type="submit"
               className="send-btn"
               disabled={isLoading || !currentSessionId || !inputText.trim()}
             >
-              {isLoading ? '…' : '↑'}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
             </button>
           </form>
-          <div className="input-footer">Grounded in Lenny's Podcast transcripts · RAG + Groq</div>
+          <div className="input-footer">
+            Lenny AI can make mistakes. Grounded in podcast transcripts.
+          </div>
         </div>
       </main>
 
@@ -226,7 +204,9 @@ function App() {
               <div className="artifact-panel-title">{activeArtifact.title}</div>
               <div className="artifact-panel-type">{activeArtifact.type}</div>
             </div>
-            <button className="artifact-close-btn" onClick={() => setActiveArtifact(null)}>✕</button>
+            <button className="artifact-close-btn" onClick={() => setActiveArtifact(null)}>
+              Close
+            </button>
           </div>
           <div className="artifact-panel-body">
             <ArtifactViewer content={activeArtifact.content} type={activeArtifact.type} title={activeArtifact.title} />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Session, Message, getSessions, createSession, getSessionMessages, sendMessage } from '../api';
 
 export function useChat() {
