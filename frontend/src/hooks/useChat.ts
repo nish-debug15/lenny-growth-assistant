@@ -60,7 +60,23 @@ export function useChat() {
   };
 
   const sendUserMessage = async (text: string) => {
-    if (!currentSessionId || !text.trim()) return;
+    if (!text.trim()) return;
+    
+    let targetSessionId = currentSessionId;
+    if (!targetSessionId) {
+      setIsLoading(true);
+      try {
+        const newSession = await createSession();
+        setSessions((prev) => [newSession, ...prev]);
+        setCurrentSessionId(newSession.id);
+        targetSessionId = newSession.id;
+      } catch (err) {
+        console.error(err);
+        setError('Failed to create new session');
+        setIsLoading(false);
+        return;
+      }
+    }
 
     // Optimistic UI update
     const tempId = Date.now().toString();
@@ -70,9 +86,9 @@ export function useChat() {
     setError(null);
 
     try {
-      await sendMessage(currentSessionId, text);
+      await sendMessage(targetSessionId, text);
       // Reload messages to get the real AI response with provider_used and ID
-      await loadMessages(currentSessionId);
+      await loadMessages(targetSessionId);
     } catch (err) {
       console.error(err);
       setError('Failed to send message');

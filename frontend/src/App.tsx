@@ -30,7 +30,7 @@ function App() {
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputText.trim() || isLoading || !currentSessionId) return;
+    if (!inputText.trim() || isLoading) return;
     sendUserMessage(inputText);
     setInputText('');
   };
@@ -87,7 +87,7 @@ function App() {
                 <h1 className="welcome-title">Good morning</h1>
                 <div className="suggestion-chips">
                   {SUGGESTIONS.map(q => (
-                    <button key={q} className="suggestion-chip" onClick={() => { setInputText(q); textareaRef.current?.focus(); }}>
+                    <button key={q} className="suggestion-chip" onClick={() => sendUserMessage(q)}>
                       {q}
                     </button>
                   ))}
@@ -99,7 +99,7 @@ function App() {
                 <h1 className="welcome-title">How can I help you today?</h1>
                 <div className="suggestion-chips">
                   {SUGGESTIONS.map(q => (
-                    <button key={q} className="suggestion-chip" onClick={() => { setInputText(q); textareaRef.current?.focus(); }}>
+                    <button key={q} className="suggestion-chip" onClick={() => sendUserMessage(q)}>
                       {q}
                     </button>
                   ))}
@@ -179,13 +179,13 @@ function App() {
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Message Lenny AI..."
-              disabled={isLoading || !currentSessionId}
+              disabled={isLoading}
               rows={1}
             />
             <button
               type="submit"
               className="send-btn"
-              disabled={isLoading || !currentSessionId || !inputText.trim()}
+              disabled={isLoading || !inputText.trim()}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
             </button>
