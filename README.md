@@ -120,6 +120,25 @@ docker compose exec backend pytest
 
 See `TESTING.md` for a comprehensive manual UI test plan.
 
+## ☁️ Deployment (Railway)
+
+The fastest way to deploy this monorepo is using [Railway](https://railway.app/).
+
+1. Create a new project on Railway and select **Deploy from GitHub repo**.
+2. Select this repository. Railway will initially try to build the root. 
+3. Go to the project dashboard and add a **PostgreSQL** database service.
+4. Go to your backend service settings:
+   - **Source:** Change the "Root Directory" to `/backend`.
+   - **Variables:** Add `GROQ_API_KEY`, `CORS_ORIGINS` (set to your future frontend URL), and `DATABASE_URL` (use Railway's provided internal database URL).
+5. Add a *second* GitHub service for the frontend:
+   - **Source:** Change the "Root Directory" to `/frontend`.
+   - **Variables:** Set `VITE_API_URL` to your backend's public Railway domain.
+6. Connect to your Railway PostgreSQL database using a tool like TablePlus or `psql` and run:
+   ```sql
+   CREATE EXTENSION vector;
+   ```
+7. Finally, run the ingestion script on your backend service to populate the database.
+
 ---
 
 ## 📂 Project Structure
@@ -129,7 +148,6 @@ See `TESTING.md` for a comprehensive manual UI test plan.
 ├── backend/          # FastAPI app, agent tools, ingestion scripts, tests
 ├── frontend/         # React app with chat and artifact viewer
 ├── data/             # Local transcript data
-├── agent-logs/       # Coding-agent transcripts
 ├── PRD.md            # Product Requirements
 ├── architecture.md   # System Architecture details
 ├── design.md         # UI/UX and Component Design
