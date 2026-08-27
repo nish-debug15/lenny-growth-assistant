@@ -26,10 +26,17 @@ app = FastAPI(
 
 app.add_middleware(RequestLoggingMiddleware)
 
-# CORS — allow frontend dev server
+# CORS — allow frontend dev server and configured origin
+origins = ["http://localhost:5173", "http://localhost:3000"]
+if settings.cors_origins:
+    origins.extend([origin.strip() for origin in settings.cors_origins.split(",")])
+# If the user explicitly sets it to "*", allow all origins (helpful for Vercel deployments)
+if "*" in origins or settings.cors_origins == "*":
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
