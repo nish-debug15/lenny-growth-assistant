@@ -9,6 +9,15 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/lenny_assistant"
 
+    @property
+    def get_database_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
     # Anthropic (direct API)
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-3-haiku-20240307"

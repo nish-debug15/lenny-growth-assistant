@@ -22,7 +22,7 @@ else:
     engine_kwargs["max_overflow"] = 10
 
 engine = create_async_engine(
-    settings.database_url,
+    settings.get_database_url,
     **engine_kwargs
 )
 

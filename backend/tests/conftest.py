@@ -16,7 +16,7 @@ async def db_session() -> AsyncSession:
     
     # Create a fresh engine for each test's event loop
     test_engine = create_async_engine(
-        settings.database_url,
+        settings.get_database_url,
         poolclass=NullPool,
         echo=False
     )
