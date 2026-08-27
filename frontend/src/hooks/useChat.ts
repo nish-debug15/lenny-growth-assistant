@@ -62,9 +62,15 @@ export function useChat() {
   const sendUserMessage = async (text: string) => {
     if (!text.trim()) return;
     
+    // Optimistic UI update FIRST
+    const tempId = Date.now().toString();
+    const userMsg: Message = { id: tempId, role: 'user', content: text, created_at: new Date().toISOString() };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+    setError(null);
+    
     let targetSessionId = currentSessionId;
     if (!targetSessionId) {
-      setIsLoading(true);
       try {
         const newSession = await createSession();
         setSessions((prev) => [newSession, ...prev]);
@@ -72,18 +78,12 @@ export function useChat() {
         targetSessionId = newSession.id;
       } catch (err) {
         console.error(err);
-        setError('Failed to create new session');
+        setError('Network Error: Failed to create new session. Please check backend connection.');
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         setIsLoading(false);
         return;
       }
     }
-
-    // Optimistic UI update
-    const tempId = Date.now().toString();
-    const userMsg: Message = { id: tempId, role: 'user', content: text, created_at: new Date().toISOString() };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsLoading(true);
-    setError(null);
 
     try {
       await sendMessage(targetSessionId, text);
@@ -91,10 +91,9 @@ export function useChat() {
       await loadMessages(targetSessionId);
     } catch (err) {
       console.error(err);
-      setError('Failed to send message');
+      setError('Network Error: Failed to send message to backend.');
       // Rollback optimistic update
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-    } finally {
       setIsLoading(false);
     }
   };

@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+console.log('RUNTIME VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('ACTIVE API_BASE:', API_BASE);
 
 export interface Session {
   id: string;
